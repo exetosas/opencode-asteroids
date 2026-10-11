@@ -285,9 +285,17 @@ class Ship {
     if (this.shootCooldown > 0 || this.dead) return [];
     this.shootCooldown = 0.2;
     const NOSE = 21;
-    const ox = this.x + Math.cos(this.angle) * NOSE;
-    const oy = this.y + Math.sin(this.angle) * NOSE;
-    return [new Bullet(ox, oy, this.angle)];
+    const ca   = Math.cos(this.angle);
+    const sa   = Math.sin(this.angle);
+    const ox   = this.x + ca * NOSE;
+    const oy   = this.y + sa * NOSE;
+    if (!tripleShotActive) return [new Bullet(ox, oy, this.angle)];
+    const d = 5;
+    return [
+      new Bullet(ox - sa * d, oy + ca * d, this.angle),
+      new Bullet(ox,           oy,           this.angle),
+      new Bullet(ox + sa * d, oy - ca * d, this.angle)
+    ];
   }
 
   draw() {
@@ -362,6 +370,8 @@ let ship, bullets, asteroids, particles, powerups, stars;
 let score, lives, level;
 let state;      // 'playing' | 'dead' | 'gameover'
 let deadTimer, starTimer;
+let tripleShotActive = false;
+let tripleShotTimer  = 0; // segundos restantes
 
 function spawnAsteroids(count) {
   const SAFE_DIST = 130;
@@ -386,8 +396,15 @@ function initGame() {
   lives  = 3;
   level  = 1;
   state  = 'playing';
+  tripleShotActive = false;
+  tripleShotTimer  = 0;
   starTimer = rand(8, 14);
   spawnAsteroids(4);
+}
+
+function activateTripleShot(seconds = 5) {
+  tripleShotActive = true;
+  tripleShotTimer  = seconds;
 }
 
 function nextLevel() {
@@ -398,6 +415,9 @@ function nextLevel() {
   stars     = [];
   starTimer = rand(8, 14);
   ship.reset();
+  tripleShotActive = false;
+  tripleShotTimer  = 0;
+  activateTripleShot(5);
   spawnAsteroids(3 + level);
 }
 
@@ -438,6 +458,13 @@ function update(dt) {
   // Disparar
   if (pressed('Space')) {
     bullets.push(...ship.tryShoot());
+  }
+  if (pressed('KeyT')) {
+    activateTripleShot(5);
+  }
+  if (tripleShotActive) {
+    tripleShotTimer -= dt;
+    if (tripleShotTimer <= 0) tripleShotActive = false;
   }
 
   // Aparición de la estrella fugaz
@@ -520,6 +547,7 @@ function update(dt) {
     if (!p.dead && !ship.dead && dist(ship, p) < ship.radius + p.radius) {
       p.dead = true;
       ship.speedBoost = 5;
+      activateTripleShot(5);
       explode(p.x, p.y, 6);
     }
   }
@@ -556,9 +584,16 @@ function drawHUD() {
 
   ctx.textAlign = 'center';
   ctx.fillText(`NIVEL ${level}`, W / 2, 26);
+  let hudY = 48;
   if (state === 'playing' && ship.speedBoost > 0) {
     ctx.fillStyle = '#0ff';
-    ctx.fillText(`VELOCIDAD ${ship.speedBoost.toFixed(1)}s`, W / 2, 48);
+    ctx.fillText(`VELOCIDAD ${ship.speedBoost.toFixed(1)}s`, W / 2, hudY);
+    hudY += 22;
+  }
+  if (state === 'playing' && tripleShotActive) {
+    ctx.fillStyle = '#ff0';
+    ctx.fillText(`TRIPLE ${tripleShotTimer.toFixed(1)}s`, W / 2, hudY);
+    hudY += 22;
   }
 
   for (let i = 0; i < lives; i++)
