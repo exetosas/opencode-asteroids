@@ -42,6 +42,7 @@ Luego visita `http://localhost:3000`.
 ## Características
 
 - 3 vidas con invencibilidad temporal al reaparecer (parpadeo)
+- Power-ups de velocidad y de escudo: el escudo protege la nave y destruye asteroides y estrellas fugaces durante unos segundos
 - Asteroides se parten en fragmentos más pequeños al ser destruidos
 - Partículas de explosión al destruir asteroides
 - 3 máscaras de nave estéticas (Clásica, Caza, OVNI) conmutables con `C`
