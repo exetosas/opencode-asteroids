@@ -29,6 +29,55 @@ const dist  = (a, b)   => Math.hypot(a.x - b.x, a.y - b.y);
 const rand  = (min, max) => min + Math.random() * (max - min);
 const randInt = (min, max) => Math.floor(rand(min, max + 1));
 
+// ── Máscaras de la nave ───────────────────────────────────────────────────────
+const SKINS = [
+  {
+    name: 'CLÁSICA',
+    color: '#fff',
+    draw(ctx, color) {
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      ctx.moveTo( 20,  0);
+      ctx.lineTo(-12, -9);
+      ctx.lineTo( -7,  0);
+      ctx.lineTo(-12,  9);
+      ctx.closePath();
+      ctx.stroke();
+    },
+  },
+  {
+    name: 'CAZA',
+    color: '#7CFC00',
+    draw(ctx, color) {
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      ctx.moveTo( 22,  0);
+      ctx.lineTo(  2, -7);
+      ctx.lineTo(-12, -11);
+      ctx.lineTo( -8,  0);
+      ctx.lineTo(-12,  11);
+      ctx.lineTo(  2,  7);
+      ctx.closePath();
+      ctx.stroke();
+    },
+  },
+  {
+    name: 'OVNI',
+    color: '#ff4fd8',
+    draw(ctx, color) {
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      ctx.ellipse(0, 2, 16, 6, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(-2, -3, 7, Math.PI, 0);
+      ctx.stroke();
+    },
+  },
+];
+
+let selectedSkin = 0;
+
 // ── Bullet ────────────────────────────────────────────────────────────────────
 class Bullet {
   constructor(x, y, angle) {
@@ -306,18 +355,12 @@ class Ship {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    ctx.strokeStyle = this.speedBoost > 0 ? '#0ff' : '#fff';
     ctx.lineWidth   = 1.5;
     ctx.lineJoin    = 'round';
 
-    // Silueta clásica: triángulo con muesca trasera
-    ctx.beginPath();
-    ctx.moveTo( 20,  0);   // nariz
-    ctx.lineTo(-12, -9);   // ala izquierda
-    ctx.lineTo( -7,  0);   // muesca trasera
-    ctx.lineTo(-12,  9);   // ala derecha
-    ctx.closePath();
-    ctx.stroke();
+    // Silueta según la máscara activa
+    const skin = SKINS[selectedSkin];
+    skin.draw(ctx, this.speedBoost > 0 ? '#0ff' : skin.color);
 
     // Llama del propulsor
     if (this.thrusting && Math.random() > 0.35) {
@@ -455,6 +498,9 @@ function update(dt) {
     return;
   }
 
+  // Cambiar máscara
+  if (pressed('KeyC')) selectedSkin = (selectedSkin + 1) % SKINS.length;
+
   // Disparar
   if (pressed('Space')) {
     bullets.push(...ship.tryShoot());
@@ -559,19 +605,14 @@ function update(dt) {
 
 // ── Draw ──────────────────────────────────────────────────────────────────────
 function drawLifeIcon(x, y) {
+  const skin = SKINS[selectedSkin];
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth   = 1.2;
-  ctx.lineJoin    = 'round';
-  ctx.beginPath();
-  ctx.moveTo( 9,  0);
-  ctx.lineTo(-6, -5);
-  ctx.lineTo(-3,  0);
-  ctx.lineTo(-6,  5);
-  ctx.closePath();
-  ctx.stroke();
+  ctx.scale(0.5, 0.5);
+  ctx.lineWidth = 2.4;
+  ctx.lineJoin  = 'round';
+  skin.draw(ctx, skin.color);
   ctx.restore();
 }
 
@@ -584,7 +625,8 @@ function drawHUD() {
 
   ctx.textAlign = 'center';
   ctx.fillText(`NIVEL ${level}`, W / 2, 26);
-  let hudY = 48;
+  ctx.fillText(`MÁSCARA: ${SKINS[selectedSkin].name}`, W / 2, 48);
+  let hudY = 70;
   if (state === 'playing' && ship.speedBoost > 0) {
     ctx.fillStyle = '#0ff';
     ctx.fillText(`VELOCIDAD ${ship.speedBoost.toFixed(1)}s`, W / 2, hudY);
